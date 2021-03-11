@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -31,6 +32,7 @@ func NewServer(clientsPool *ClientsPool) *Server {
 
 // Run puts the server to listen at the specified port
 func (server *Server) Run(p string) error {
+	log.Info().Msg("running server on port " + p)
 	return http.ListenAndServe(":"+p, server.router)
 }
 

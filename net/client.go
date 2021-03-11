@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net/http"
+	"strconv"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -18,6 +21,12 @@ type Client struct {
 
 // NewClient creates and returns a new client
 func NewClient(certFile, keyFile string) *Client {
+
+	if certFile == "" || keyFile == "" {
+		return &Client{
+			httpClient: http.Client{},
+		}
+	}
 
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -66,6 +75,7 @@ type ClientsPool struct {
 
 // NewClientsPool creates and returns a new clients pool
 func NewClientsPool(num int, certFile, keyFile string) *ClientsPool {
+	log.Info().Msg("creating clients pool with " + strconv.Itoa(num) + " clients")
 	clientsPool := ClientsPool{
 		clients: []*Client{},
 	}
