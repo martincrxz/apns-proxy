@@ -14,13 +14,15 @@ const (
 
 // Server listens to not HTTP/2 requests
 type Server struct {
-	router *mux.Router
+	router      *mux.Router
+	clientsPool *ClientsPool
 }
 
 // NewServer creates and returns a new server
-func NewServer() *Server {
+func NewServer(clientsPool *ClientsPool) *Server {
 	server := &Server{
-		router: mux.NewRouter(),
+		router:      mux.NewRouter(),
+		clientsPool: clientsPool,
 	}
 
 	server.router.HandleFunc(servicePath, server.processNotification).Methods("POST")
@@ -41,8 +43,9 @@ func (server *Server) processNotification(w http.ResponseWriter, r *http.Request
 		return
 	}
 	vars := mux.Vars(r)
-	deviceId := vars[deviceIDVarName]
+	deviceID := vars[deviceIDVarName]
 
-	client := getClient()
-	client.SendNotification()
+	client := server.clientsPool.GetClient()
+	client.SendNotification(deviceID)
+	server.clientsPool.GetClientBack(client)
 }
