@@ -1,0 +1,8 @@
+{"level":"warn","time":"2021-03-12T08:16:25-08:00","caller":"/home/martin/repositories/apns-proxy/main.go:37","message":"no cert file specified"}
+{"level":"warn","time":"2021-03-12T08:16:25-08:00","caller":"/home/martin/repositories/apns-proxy/main.go:41","message":"no key file specified"}
+{"level":"info","time":"2021-03-12T08:16:25-08:00","caller":"/home/martin/repositories/apns-proxy/net/client.go:61","message":"creating clients pool with 10 clients"}
+{"level":"info","time":"2021-03-12T08:16:25-08:00","caller":"/home/martin/repositories/apns-proxy/net/server.go:37","message":"running server on port 8080"}
+{"level":"warn","time":"2021-03-12T08:21:08-08:00","caller":"/home/martin/repositories/apns-proxy/main.go:37","message":"no cert file specified"}
+{"level":"warn","time":"2021-03-12T08:21:08-08:00","caller":"/home/martin/repositories/apns-proxy/main.go:41","message":"no key file specified"}
+{"level":"info","time":"2021-03-12T08:21:08-08:00","caller":"/home/martin/repositories/apns-proxy/net/client.go:61","message":"creating clients pool with 10 clients"}
+{"level":"info","time":"2021-03-12T08:21:08-08:00","caller":"/home/martin/repositories/apns-proxy/net/server.go:37","message":"running server on port 8080"}

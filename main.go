@@ -18,20 +18,25 @@ const (
 
 func main() {
 
-	logFile, err := os.OpenFile("./log/apns-proxy.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
-	if err != nil {
-		fmt.Printf("could not create log file, error: %v\n", err)
-		os.Exit(exitFailCode)
-	}
-
-	log.Logger = zerolog.New(logFile).With().Timestamp().
-		Logger().With().Caller().Logger()
-
 	port := flag.String("p", defaultPort, "port number")
 	clientsNumber := flag.Int("l", defaultClientsNumber, "number of clients")
 	certFile := flag.String("c", "", "certificate file")
 	keyFile := flag.String("k", "", "key file")
+	logFilePath := flag.String("g", "", "log file")
 	flag.Parse()
+
+	logFile := os.Stdout
+	if *logFilePath != "" {
+		var err error
+		logFile, err = os.OpenFile(*logFilePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+		if err != nil {
+			fmt.Printf("could not create log file, error: %v\n", err)
+			os.Exit(exitFailCode)
+		}
+	}
+
+	log.Logger = zerolog.New(logFile).With().Timestamp().
+		Logger().With().Caller().Logger()
 
 	if *certFile == "" {
 		log.Warn().Msg("no cert file specified")

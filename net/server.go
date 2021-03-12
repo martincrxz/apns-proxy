@@ -40,23 +40,20 @@ func (server *Server) Run(p string) error {
 
 func (server *Server) processNotification(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var data APNSRequest
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorMessage{Error: "json couldn't be parsed"})
-		return
-	}
 	vars := mux.Vars(r)
 	deviceID := vars[deviceIDVarName]
 
-	url := protocol + "://" + host + "/" + "/3/device/" + deviceID
+	log.Info().Msg("sending notification to " + deviceID + " device")
+
+	url := protocol + "://" + host + "/3/device/" + deviceID
 	apnsRequest, err := http.NewRequest(http.MethodPost, url, r.Body)
 	if err != nil {
-		// handle error
+		log.Err(err).Msg("could not build request")
 	}
 
 	for key, values := range r.Header {
 		for _, value := range values {
+			log.Info().Msg("bypassing header to apple, key: " + key + ", value: " + value)
 			apnsRequest.Header.Add(key, value)
 		}
 	}
@@ -77,6 +74,7 @@ func (server *Server) processNotification(w http.ResponseWriter, r *http.Request
 
 	for key, values := range resp.Header {
 		for _, value := range values {
+			log.Info().Msg("bypassing header from apple, key: " + key + ", value: " + value)
 			w.Header().Add(key, value)
 		}
 	}
