@@ -10,7 +10,9 @@ import (
 
 const (
 	deviceIDVarName = "deviceToken"
-	servicePath     = "/3/device/{{{.deviceIDVarName}}}"
+	servicePath     = "/3/device/{" + deviceIDVarName + "}"
+	protocol        = "https"
+	host            = "api.push.apple.com"
 )
 
 // Server listens to not HTTP/2 requests
@@ -47,7 +49,50 @@ func (server *Server) processNotification(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	deviceID := vars[deviceIDVarName]
 
+	url := protocol + "://" + host + "/" + "/3/device/" + deviceID
+	apnsRequest, err := http.NewRequest(http.MethodPost, url, r.Body)
+	if err != nil {
+		// handle error
+	}
+
+	for key, values := range r.Header {
+		for _, value := range values {
+			apnsRequest.Header.Add(key, value)
+		}
+	}
+
 	client := server.clientsPool.GetClient()
-	client.SendNotification(deviceID)
+	resp, err := client.SendNotification(apnsRequest)
 	server.clientsPool.GetClientBack(client)
+	defer resp.Body.Close()
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "\t")
+
+	if resp == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		enc.Encode(ErrorMessage{Error: "could not get apple response"})
+		return
+	}
+
+	for key, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(key, value)
+		}
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var data APNSResponse
+		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			enc.Encode(ErrorMessage{Error: "could not decode apple response"})
+			return
+		}
+		w.WriteHeader(resp.StatusCode)
+		enc.Encode(data)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	return
 }

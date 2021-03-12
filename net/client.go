@@ -2,16 +2,11 @@ package net
 
 import (
 	"crypto/tls"
-	"encoding/json"
-	"math/rand"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/rs/zerolog/log"
-)
-
-const (
-	apnsURL = "api.push.apple.com:443"
 )
 
 // Client sends HTTP/2 requests to APNS server
@@ -47,41 +42,29 @@ func NewClient(certFile, keyFile string) *Client {
 }
 
 // SendNotification sends a notification using the specified client
-func (client *Client) SendNotification(deviceID string) (int, string, error) {
-	req, err := http.NewRequest("POST", apnsURL, nil)
-	if err != nil {
-		// handle error
-	}
+func (client *Client) SendNotification(req *http.Request) (*http.Response, error) {
 	resp, err := client.httpClient.Do(req)
 	if err != nil {
-		// handle error
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		var data APNSResponse
-		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-			// handle error
-		}
+		return nil, err
 	}
 
-	return 200, "", nil
+	return resp, nil
 }
 
 // ClientsPool is a pool of HTTP/2 clients than can comunicate with APNS server
 type ClientsPool struct {
-	clients []*Client
+	pool *sync.Pool
 }
 
 // NewClientsPool creates and returns a new clients pool
 func NewClientsPool(num int, certFile, keyFile string) *ClientsPool {
 	log.Info().Msg("creating clients pool with " + strconv.Itoa(num) + " clients")
 	clientsPool := ClientsPool{
-		clients: []*Client{},
+		pool: &sync.Pool{},
 	}
 
 	for i := 0; i < num; i++ {
-		clientsPool.clients = append(clientsPool.clients, NewClient(certFile, keyFile))
+		clientsPool.pool.Put(NewClient(certFile, keyFile))
 	}
 
 	return &clientsPool
@@ -89,13 +72,10 @@ func NewClientsPool(num int, certFile, keyFile string) *ClientsPool {
 
 // GetClient removes and returns a random client from the clients pool
 func (clientsPool *ClientsPool) GetClient() *Client {
-	index := rand.Intn(len(clientsPool.clients))
-	client := clientsPool.clients[index]
-	clientsPool.clients = append(clientsPool.clients[:index], clientsPool.clients[index+1:]...)
-	return client
+	return clientsPool.pool.Get().(*Client)
 }
 
 // GetClientBack puts a client back in the clients pool
 func (clientsPool *ClientsPool) GetClientBack(client *Client) {
-	clientsPool.clients = append(clientsPool.clients, client)
+	clientsPool.pool.Put(client)
 }
