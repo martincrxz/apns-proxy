@@ -32,8 +32,7 @@ func NewClient(certFile, keyFile, proxy string) (*http.Client, error) {
 		log.Info().Msg("certificate loaded, issuer common name: " + x509Cert.Issuer.CommonName)
 
 		tlsConfig := &tls.Config{
-			Certificates:       []tls.Certificate{cert},
-			InsecureSkipVerify: true,
+			Certificates: []tls.Certificate{cert},
 		}
 
 		tlsConfig.BuildNameToCertificate()
