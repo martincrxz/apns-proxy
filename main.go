@@ -56,7 +56,11 @@ func main() {
 		log.Warn().Msg("no server key file specified")
 	}
 
-	client := net.NewClient(*clientCertFile, *clientKeyFile, *proxy)
+	client, err := net.NewClient(*clientCertFile, *clientKeyFile, *proxy)
+	if err != nil {
+		log.Error().Err(err).Msgf("fatal error: %v", err)
+		os.Exit(exitFailCode)
+	}
 	server := net.NewServer(client)
 	if err := server.Run(*port, *serverKeyFile, *serverCertFile); err != nil {
 		log.Error().Err(err).Msg("error while running server")

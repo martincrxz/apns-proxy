@@ -14,32 +14,38 @@ import (
 type Client = http.Client
 
 // NewClient creates and returns a new client
-func NewClient(certFile, keyFile, proxy string) *http.Client {
+func NewClient(certFile, keyFile, proxy string) (*http.Client, error) {
 
-	if certFile == "" || keyFile == "" {
-		return &http.Client{}
+	transport := &http.Transport{}
+
+	if certFile != "" && keyFile != "" {
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			log.Err(err).Msg("could not load certificate")
+			return nil, err
+		}
+		x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
+		if err != nil {
+			log.Err(err).Msg("could not load certificate")
+			return nil, err
+		}
+		log.Info().Msg("certificate loaded, issuer common name: " + x509Cert.Issuer.CommonName)
+
+		tlsConfig := &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			InsecureSkipVerify: true,
+		}
+
+		tlsConfig.BuildNameToCertificate()
+
+		transport.TLSClientConfig = tlsConfig
 	}
-
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		log.Err(err).Msg("could not load certificate")
-	}
-	x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
-	log.Info().Msg("certificate loaded, issuer common name: " + x509Cert.Issuer.CommonName)
-
-	tlsConfig := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		InsecureSkipVerify: true,
-	}
-
-	tlsConfig.BuildNameToCertificate()
-
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
 
 	if proxy != "" {
 		proxyUrl, err := url.Parse(proxy)
 		if err != nil {
 			log.Error().Err(err).Msg("invalid proxy")
+			return nil, err
 		} else {
 			log.Info().Msg("using proxy: " + proxy)
 		}
@@ -48,13 +54,14 @@ func NewClient(certFile, keyFile, proxy string) *http.Client {
 		log.Info().Msg("using no proxy")
 	}
 
-	if err = http2.ConfigureTransport(transport); err != nil {
+	if err := http2.ConfigureTransport(transport); err != nil {
 		log.Error().Err(err).Msg("could not configure transport for HTTP/2 connections")
+		return nil, err
 	} else {
 		log.Info().Msg("transport configured for HTTP/2 connections")
 	}
 
-	return &http.Client{Transport: transport}
+	return &http.Client{Transport: transport}, nil
 }
 
 // SendNotification sends a notification using the specified client
