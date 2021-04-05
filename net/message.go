@@ -1,6 +1,8 @@
 package net
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // APNSRequest holds a request data
 type APNSRequest struct {

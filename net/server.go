@@ -17,15 +17,15 @@ const (
 
 // Server listens to not HTTP/2 requests
 type Server struct {
-	router      *mux.Router
-	clientsPool *ClientsPool
+	router *mux.Router
+	client *http.Client
 }
 
 // NewServer creates and returns a new server
-func NewServer(clientsPool *ClientsPool) *Server {
+func NewServer(client *http.Client) *Server {
 	server := &Server{
-		router:      mux.NewRouter(),
-		clientsPool: clientsPool,
+		router: mux.NewRouter(),
+		client: client,
 	}
 
 	server.router.HandleFunc(servicePath, server.processNotification).Methods("POST")
@@ -33,9 +33,12 @@ func NewServer(clientsPool *ClientsPool) *Server {
 }
 
 // Run puts the server to listen at the specified port
-func (server *Server) Run(p string) error {
+func (server *Server) Run(p, key, cert string) error {
 	log.Info().Msg("running server on port " + p)
-	return http.ListenAndServe(":"+p, server.router)
+	if key == "" || cert == "" {
+		return http.ListenAndServe(":"+p, server.router)
+	}
+	return http.ListenAndServeTLS(":"+p, cert, key, server.router)
 }
 
 func (server *Server) processNotification(w http.ResponseWriter, r *http.Request) {
@@ -58,9 +61,7 @@ func (server *Server) processNotification(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	client := server.clientsPool.GetClient()
-	resp, err := client.SendNotification(apnsRequest)
-	server.clientsPool.GetClientBack(client)
+	resp, err := SendNotification(server.client, apnsRequest)
 	defer resp.Body.Close()
 
 	enc := json.NewEncoder(w)

@@ -19,9 +19,11 @@ const (
 func main() {
 
 	port := flag.String("p", defaultPort, "port number")
-	clientsNumber := flag.Int("l", defaultClientsNumber, "number of clients")
-	certFile := flag.String("c", "", "certificate file")
-	keyFile := flag.String("k", "", "key file")
+	clientCertFile := flag.String("cc", "", "client certificate file")
+	clientKeyFile := flag.String("ck", "", "client key file")
+	serverCertFile := flag.String("sc", "", "server certificate file")
+	serverKeyFile := flag.String("sk", "", "server key file")
+	proxy := flag.String("x", "", "proxy url")
 	logFilePath := flag.String("g", "", "log file")
 	flag.Parse()
 
@@ -38,17 +40,25 @@ func main() {
 	log.Logger = zerolog.New(logFile).With().Timestamp().
 		Logger().With().Caller().Logger()
 
-	if *certFile == "" {
-		log.Warn().Msg("no cert file specified")
+	if *clientCertFile == "" {
+		log.Warn().Msg("no client cert file specified")
 	}
 
-	if *keyFile == "" {
-		log.Warn().Msg("no key file specified")
+	if *clientKeyFile == "" {
+		log.Warn().Msg("no client key file specified")
 	}
 
-	clientsPool := net.NewClientsPool(*clientsNumber, *certFile, *keyFile)
-	server := net.NewServer(clientsPool)
-	if err := server.Run(*port); err != nil {
+	if *serverCertFile == "" {
+		log.Warn().Msg("no server cert file specified")
+	}
+
+	if *serverKeyFile == "" {
+		log.Warn().Msg("no server key file specified")
+	}
+
+	client := net.NewClient(*clientCertFile, *clientKeyFile, *proxy)
+	server := net.NewServer(client)
+	if err := server.Run(*port, *serverKeyFile, *serverCertFile); err != nil {
 		log.Error().Err(err).Msg("error while running server")
 		os.Exit(exitFailCode)
 	}
